@@ -297,8 +297,13 @@ void zmq::signaler_t::recv ()
     int nbytes = ::recv (r, (char*) &dummy, sizeof (dummy), 0);
     wsa_assert (nbytes != SOCKET_ERROR);
 #else
-    ssize_t nbytes = ::recv (r, &dummy, sizeof (dummy), 0);
-    errno_assert (nbytes >= 0);
+    ssize_t nbytes;
+    while (true) {
+        ssize_t nbytes = ::recv (r, &dummy, sizeof (dummy), 0);
+        if ( (nbytes == -1 && errno == EAGAIN) || errno == EINTR) { usleep(10); continue; }
+        errno_assert (nbytes >= 0);
+        break;
+    }
 #endif
     zmq_assert (nbytes == sizeof (dummy));
     zmq_assert (dummy == 0);
